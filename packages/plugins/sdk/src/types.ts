@@ -270,8 +270,8 @@ export interface ToolRunContext {
   runId: string;
   /** UUID of the company the run belongs to. */
   companyId: string;
-  /** UUID of the project the run belongs to. */
-  projectId: string;
+  /** UUID of the run's project, or null for runs without a project. */
+  projectId: string | null;
 }
 
 /**

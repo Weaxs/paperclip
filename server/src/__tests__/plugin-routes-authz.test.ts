@@ -630,13 +630,13 @@ describe("plugin tool and bridge authz", () => {
     }
   });
 
-  it("allows tool execution when agent, run, and project all belong to runContext.companyId", async () => {
+  it.each([projectA, null])("allows board tool execution within company scope with project %s", async (projectId) => {
     const executeTool = vi.fn().mockResolvedValue({ content: "ok" });
     const { app } = await createApp(boardActor(), {}, {
       db: createSelectQueueDb([
         [{ companyId: companyA }],
         [{ companyId: companyA, agentId: agentA }],
-        [{ companyId: companyA }],
+        ...(projectId ? [[{ companyId: companyA }]] : []),
       ]),
       toolDeps: {
         toolDispatcher: {
@@ -656,7 +656,7 @@ describe("plugin tool and bridge authz", () => {
           agentId: agentA,
           runId: runA,
           companyId: companyA,
-          projectId: projectA,
+          projectId,
         },
       });
 
@@ -668,7 +668,7 @@ describe("plugin tool and bridge authz", () => {
         agentId: agentA,
         runId: runA,
         companyId: companyA,
-        projectId: projectA,
+        projectId,
       },
     );
   });
@@ -1005,7 +1005,39 @@ describe("plugin tool and bridge authz", () => {
     expect(listToolsForAgent).toHaveBeenCalled();
   });
 
-  it("allows agent JWT to execute a tool within its company scope", async () => {
+  it.each([undefined, "", 42, {}, []])("rejects an invalid project ID %j", async (projectId) => {
+    const executeTool = vi.fn();
+    const { app } = await createApp(agentActor(), {}, {
+      toolDeps: { toolDispatcher: { listToolsForAgent: vi.fn(), getTool: vi.fn(), executeTool } },
+    });
+    const res = await request(app).post("/api/plugins/tools/execute").send({
+      tool: "paperclip.example:search", parameters: {},
+      runContext: { agentId: agentA, runId: runA, companyId: companyA, projectId },
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('"runContext.projectId" must be a non-empty string or null');
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [[{ companyId: companyB }]],
+    [[{ companyId: companyA }], [{ companyId: companyB, agentId: agentA }]],
+    [[{ companyId: companyA }], [{ companyId: companyA, agentId: "other-agent" }]],
+  ])("rejects a projectless call with mismatched agent/run scope %j", async (...rows) => {
+    const executeTool = vi.fn();
+    const { app } = await createApp(agentActor(), {}, {
+      db: createSelectQueueDb(rows),
+      toolDeps: { toolDispatcher: { listToolsForAgent: vi.fn(), getTool: vi.fn(), executeTool } },
+    });
+    const res = await request(app).post("/api/plugins/tools/execute").send({
+      tool: "paperclip.example:search", parameters: {},
+      runContext: { agentId: agentA, runId: runA, companyId: companyA, projectId: null },
+    });
+    expect(res.status).toBe(403);
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it.each([projectA, null])("allows agent JWT to execute a tool with project %s", async (projectId) => {
     const executeTool = vi.fn().mockResolvedValue({ content: "ok" });
     const { app } = await createApp(
       agentActor(),
@@ -1014,7 +1046,7 @@ describe("plugin tool and bridge authz", () => {
         db: createSelectQueueDb([
           [{ companyId: companyA }],
           [{ companyId: companyA, agentId: agentA }],
-          [{ companyId: companyA }],
+          ...(projectId ? [[{ companyId: companyA }]] : []),
         ]),
         toolDeps: {
           toolDispatcher: {
@@ -1031,14 +1063,14 @@ describe("plugin tool and bridge authz", () => {
       .send({
         tool: "paperclip.example:search",
         parameters: { q: "test" },
-        runContext: { agentId: agentA, runId: runA, companyId: companyA, projectId: projectA },
+        runContext: { agentId: agentA, runId: runA, companyId: companyA, projectId },
       });
 
     expect(res.status).toBe(200);
     expect(executeTool).toHaveBeenCalledWith(
       "paperclip.example:search",
       { q: "test" },
-      { agentId: agentA, runId: runA, companyId: companyA, projectId: projectA },
+      { agentId: agentA, runId: runA, companyId: companyA, projectId },
     );
   });
 

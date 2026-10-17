@@ -427,6 +427,11 @@ When an agent invokes a plugin tool during a run, the host routes the call to th
 
 - `executeTool(input)` — receives tool name, parsed parameters, and run context (agent ID, run ID, company ID, project ID)
 
+`ToolRunContext.projectId` is `null` when the run has no project. Tool handlers
+must handle that case explicitly. A projectless call still requires company,
+agent, and run authorization. Calls to `/api/plugins/tools/execute` must supply
+`projectId` as a non-empty string or explicit `null`.
+
 The worker executes the tool logic and returns a typed result. The host enforces capability gates — a plugin must declare `agent.tools.register` to contribute tools, and individual tools may require additional capabilities (e.g. `http.outbound` for tools that call external APIs).
 
 ### 11.3 Tool Availability
