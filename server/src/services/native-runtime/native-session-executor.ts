@@ -7868,6 +7868,15 @@ export async function executePaperclipNativeSession(input: {
     },
   ) => Promise<unknown>;
 }): Promise<AdapterExecutionResult> {
+  if (
+    input.execution.provider.kind === "acpx" &&
+    ["copilot", "dsh"].includes(input.execution.provider.agent) &&
+    !resolveAcpxQualification(input.execution.provider, process.env)
+  ) {
+    throw new Error(
+      "paperclip_runner_provider_unsupported: ACPX candidate requires exact host qualification authorization; authorize the provider and model in PAPERCLIP_RUNNER_ACPX_QUALIFICATION before retrying; no provider was launched",
+    );
+  }
   const agentKeyId = input.runnerEnvironment?.PAPERCLIP_AGENT_KEY_ID;
   if (agentKeyId) {
     // Recovered pre-upgrade inputs also need the current public identity marker
@@ -8094,15 +8103,6 @@ async function executePaperclipNativeSessionWithinScope(
     input.execution.schema !== "paperclip.native-execution-input.v8"
   ) {
     throw new Error("paperclip_runner_provider_unsupported");
-  }
-  if (
-    input.execution.provider.kind === "acpx" &&
-    ["copilot"].includes(input.execution.provider.agent) &&
-    !resolveAcpxQualification(input.execution.provider, process.env)
-  ) {
-    throw new Error(
-      "paperclip_runner_provider_unsupported: ACPX candidate requires exact host qualification authorization",
-    );
   }
   const timeController = createRunPreparationTiming(input.execution.binding.runId, "native.controller");
   const preparationSpans = input.preparationSpans ?? [];
