@@ -9,7 +9,7 @@ import { verifyPiInstallation } from "./pi-installation.js";
 import { verifyQualifiedAcpxInstallation, type VerifiedAcpxInstallation } from "./installation-integrity.js";
 
 /** Closed build-owned registry. Provider branches add their pinned installations here. */
-export async function verifyAcpxProfileInstallation(profile: QualifiedAcpxProfile, candidateAdmission?: AcpxCandidateStartupAdmission): Promise<VerifiedAcpxInstallation> {
+export async function verifyAcpxProfileInstallation(profile: QualifiedAcpxProfile, candidateAdmission?: AcpxCandidateStartupAdmission, options?: { signal?: AbortSignal }): Promise<VerifiedAcpxInstallation> {
   if (profile.agent !== "dsh") assertAcpxExecutionAdmission(profile, candidateAdmission);
   if (profile.agent === "antigravity") return verifyAntigravityInstallation(profile, candidateAdmission);
   if (profile.agent === "pi") return verifyPiInstallation(profile);
@@ -24,7 +24,7 @@ export async function verifyAcpxProfileInstallation(profile: QualifiedAcpxProfil
   if (profile.agent !== "claude" && profile.agent !== "codex" && profile.agent !== "grok" && profile.agent !== "dsh") {
     throw new Error(`ACPX ${profile.agent} verified candidate distribution is not installed in this build`);
   }
-  return verifyQualifiedAcpxInstallation(profile);
+  return verifyQualifiedAcpxInstallation(profile, undefined, options);
 }
 
 /** Provider policy admission is repeated immediately before each process launch. */

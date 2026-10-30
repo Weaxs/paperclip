@@ -107,6 +107,32 @@ describe("ACPX installation integrity", () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it("bounds full DSH installation verification when dependency resolution stalls", async () => {
+    vi.useFakeTimers();
+    try {
+      const pending = verifyQualifiedAcpxInstallation(
+        resolveQualifiedAcpxProfile("dsh", "deepseek-v4-flash"),
+        () => new Promise<string>(() => undefined),
+      );
+      const rejection = expect(pending).rejects.toThrow("60-second deadline");
+      await vi.advanceTimersByTimeAsync(60_000);
+      await rejection;
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("propagates caller cancellation into DSH dependency resolution", async () => {
+    const controller = new AbortController();
+    const pending = verifyQualifiedAcpxInstallation(
+      resolveQualifiedAcpxProfile("dsh", "deepseek-v4-flash"),
+      (_name, _issuer, signal) => new Promise<string>((_, reject) => {
+        signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+      }),
+      { signal: controller.signal },
+    );
+    controller.abort(new Error("dependency scan cancelled"));
+    await expect(pending).rejects.toThrow("dependency scan cancelled");
+  });
+
   it.each([["linux", "x64"], ["linux", "arm64"], ["darwin", "arm64"], ["darwin", "x64"]] as const)(
     "retains Claude executable admission for a published bundle on %s %s", async (os, cpu) => {
       const parent = await realpath(await mkdtemp(join(tmpdir(), "paperclip-claude-npm-admission-")));

@@ -16,6 +16,7 @@ export function dshSnapshotPathSkipped(source: string): boolean {
 export type DshPackageJsonResolver = (
   packageName: string,
   issuerPackageJsonPath?: string,
+  signal?: AbortSignal,
 ) => string | Promise<string>;
 
 function dshDependencyNames(metadata: DshPackageMetadata): Set<string> {
@@ -39,12 +40,13 @@ function inside(root: string, candidate: string): boolean {
   return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
 }
 
-async function resolveDshPackageJsonFromIssuer(packageName: string, issuerPackageJsonPath?: string): Promise<string> {
+async function resolveDshPackageJsonFromIssuer(packageName: string, issuerPackageJsonPath?: string, signal?: AbortSignal): Promise<string> {
   if (!/^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i.test(packageName) || packageName.split("/").some(segment => segment === "." || segment === "..")) {
     throw Object.assign(new Error(`Invalid DSH package name '${packageName}'`), { code: "ERR_INVALID_PACKAGE_NAME" });
   }
   let directory = dirname(issuerPackageJsonPath?.startsWith("file:") ? fileURLToPath(issuerPackageJsonPath) : issuerPackageJsonPath ?? fileURLToPath(import.meta.url));
   for (let count = 0; count < 64; count++) {
+    signal?.throwIfAborted();
     const candidate = join(directory, "node_modules", packageName, "package.json");
     try {
       const resolved = await realpath(candidate);
@@ -67,21 +69,22 @@ export function createDshPackageJsonResolver(root?: string, manifest?: string): 
   if (!inside(canonicalRoot, canonicalManifest)) throw new Error("DSH provider package manifest resolves outside the selected provider root");
   const canonicalNodeModules = realpathSync(resolve(canonicalRoot, "node_modules"));
   if (!inside(canonicalRoot, canonicalNodeModules)) throw new Error("DSH provider node_modules resolves outside the selected provider root");
-  return async (packageName, issuerPackageJsonPath) => {
+  return async (packageName, issuerPackageJsonPath, signal) => {
     const canonicalIssuer = issuerPackageJsonPath === undefined ? canonicalManifest : await realpath(issuerPackageJsonPath);
     if (!inside(canonicalRoot, canonicalIssuer)) throw new Error(`DSH provider package issuer for ${packageName} resolves outside the selected provider root`);
-    const packageJsonPath = await resolveDshPackageJsonFromIssuer(packageName, canonicalIssuer);
+    const packageJsonPath = await resolveDshPackageJsonFromIssuer(packageName, canonicalIssuer, signal);
     if (!inside(canonicalNodeModules, packageJsonPath)) throw new Error(`DSH provider package ${packageName} resolves outside the selected provider root`);
     return packageJsonPath;
   };
 }
 
-async function collectDshPackageLinks(packages: ReadonlyMap<string, DshProviderPackage>): Promise<Map<string, Map<string, string>>> {
+async function collectDshPackageLinks(packages: ReadonlyMap<string, DshProviderPackage>, signal?: AbortSignal): Promise<Map<string, Map<string, string>>> {
   const admitted = new Set([...packages.values()].map(pkg => pkg.directory));
   const links = new Map<string, Map<string, string>>();
   for (const { directory } of packages.values()) {
     const packageLinks = new Map<string, string>();
     const readLinks = async (nodeModules: string, scope = ""): Promise<void> => {
+      signal?.throwIfAborted();
       const entries = await readdir(nodeModules, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
         if (error.code === "ENOENT") return [];
         throw error;
@@ -114,15 +117,18 @@ export async function collectDshProviderPackages(input: {
   profile: QualifiedAcpxProfile;
   resolvePackageJson: DshPackageJsonResolver;
   serverPackageJsonPath: string;
+  signal?: AbortSignal;
 }): Promise<{ packages: DshProviderPackage[]; links: Map<string, Map<string, string>> }> {
   const packages = new Map<string, DshProviderPackage>();
   const resolutionLinks = new Map<string, Map<string, string>>();
   const roots = ["@deepseek-ai/dsh-app-boot", "@deepseek-ai/dsh-acp-app", "@deepseek-ai/dsh-base"] as const;
   const visit = async (packageName: string, issuerPackageJsonPath: string, depth = 0, traverseDependencies = true): Promise<string> => {
+    input.signal?.throwIfAborted();
     let packageJsonPath: string;
     try {
-      const resolved = await input.resolvePackageJson(packageName, issuerPackageJsonPath);
+      const resolved = await input.resolvePackageJson(packageName, issuerPackageJsonPath, input.signal);
       packageJsonPath = await realpath(resolved);
+      input.signal?.throwIfAborted();
     } catch (error) {
       throw Object.assign(error instanceof Error ? error : new Error(String(error)), { dshDirectPackageResolutionDepth: depth });
     }
@@ -171,8 +177,9 @@ export async function collectDshProviderPackages(input: {
   const runtimeMetadata = await readPackageMetadata(runtimePackageJsonPath, "@deepseek-ai/dsh");
   const runtimeDependencies = dshDependencyNames(runtimeMetadata);
   for (const dependency of [...runtimeDependencies].sort()) {
+    input.signal?.throwIfAborted();
     try {
-      const resolved = await input.resolvePackageJson(dependency, runtimePackageJsonPath);
+      const resolved = await input.resolvePackageJson(dependency, runtimePackageJsonPath, input.signal);
       const dependencyPackageJsonPath = await realpath(resolved);
       if (!packages.has(dependencyPackageJsonPath)) continue;
       const runtimeLinks = resolutionLinks.get(dirname(runtimePackageJsonPath)) ?? new Map<string, string>();
@@ -182,7 +189,7 @@ export async function collectDshProviderPackages(input: {
       if (!["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED", "ENOENT"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
     }
   }
-  const links = await collectDshPackageLinks(packages);
+  const links = await collectDshPackageLinks(packages, input.signal);
   for (const [issuer, resolved] of resolutionLinks) {
     const packageLinks = links.get(issuer) ?? new Map<string, string>();
     for (const [name, target] of resolved) packageLinks.set(name, target);

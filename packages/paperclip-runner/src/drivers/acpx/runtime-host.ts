@@ -217,6 +217,8 @@ export interface AcpxRetainedCleanupFailure {
 export interface AcpxRuntimeHostDependencies {
   verifyInstallation?: (
     profile: QualifiedAcpxProfile,
+    candidateAdmission?: AcpxCandidateStartupAdmission,
+    options?: { signal?: AbortSignal },
   ) => Promise<VerifiedAcpxInstallation>;
   /** Internal test seam for aborting credential acquisition. */
   stageCredential?: typeof stageManagedCodexCredential;
@@ -417,8 +419,8 @@ export class AcpxRuntimeHost {
       options.signal,
       () =>
         dependencies.verifyInstallation
-          ? dependencies.verifyInstallation(profile)
-          : verifyAcpxProfileInstallation(profile, options.candidateAdmission),
+          ? dependencies.verifyInstallation(profile, options.candidateAdmission, { signal: options.signal })
+          : verifyAcpxProfileInstallation(profile, options.candidateAdmission, { signal: options.signal }),
       dependencies.retainAdmissionCleanup,
     ).catch(error => { throw recordAcpxAdmissionFailure(error, "installation"); });
     if (installation.commandDigest !== profile.commandDigest) {

@@ -1,7 +1,7 @@
 import { MAX_ACPX_RUNTIME_EXECUTABLE_BYTES, ACPX_PRIVATE_SNAPSHOT_ENV, createAcpxPrivateSnapshot, type AcpxPrivateSnapshot } from "./private-snapshot.js";
 import { packageModuleFormat, readPackageMetadata, type AcpxCommandFormat, type AcpxPackageJsonResolver, type AcpxPackageMetadata } from "./package-metadata.js";
 export type { AcpxCommandFormat, AcpxPackageJsonResolver, AcpxPackageMetadata } from "./package-metadata.js";
-import { collectDshProviderPackages, createDshPackageJsonResolver, DSH_MAX_DEPENDENCY_ANCESTORS, dshEntryPackageLinks, dshSnapshotPathSkipped } from "./dsh-installation.js";
+import { collectDshProviderPackages, createDshPackageJsonResolver, DSH_MAX_DEPENDENCY_ANCESTORS, dshEntryPackageLinks, dshSnapshotPathSkipped, type DshPackageJsonResolver } from "./dsh-installation.js";
 import { withDshAdmissionDeadline } from "./dsh-admission.js";
 import { createNativeAcpxDistributionSnapshot, NATIVE_ACPX_BOOTSTRAP_NAME, readNativeAcpxDistributionEntries, type NativeAcpxDistributionInput } from "./native-distribution-integrity.js";
 export type { NativeAcpxDistributionInput } from "./native-distribution-integrity.js";
@@ -686,8 +686,24 @@ const GUARDED_MODULE_SNAPSHOT_BOOTSTRAP = snapshotBootstrap("module", true);
 /** Resolve and verify every installed artifact bound by a qualified profile. */
 export async function verifyQualifiedAcpxInstallation(
   profile: QualifiedAcpxProfile,
-  resolvePackageJson: AcpxPackageJsonResolver = defaultPackageJsonResolver,
+  resolvePackageJson: DshPackageJsonResolver = defaultPackageJsonResolver,
+  options?: { signal?: AbortSignal },
 ): Promise<VerifiedAcpxInstallation> {
+  if (profile.agent === "dsh") {
+    return withDshAdmissionDeadline(
+      signal => verifyQualifiedAcpxInstallationWithSignal(profile, resolvePackageJson, signal),
+      options?.signal,
+    );
+  }
+  return verifyQualifiedAcpxInstallationWithSignal(profile, resolvePackageJson, options?.signal ?? new AbortController().signal);
+}
+
+async function verifyQualifiedAcpxInstallationWithSignal(
+  profile: QualifiedAcpxProfile,
+  resolvePackageJson: DshPackageJsonResolver,
+  signal: AbortSignal,
+): Promise<VerifiedAcpxInstallation> {
+  signal.throwIfAborted();
   if (profile.agent !== "dsh") assertAcpxProfileReleased(profile.agent);
   // Keep the selected package authority available when its bundled provider
   // wrapper delegates platform installation to the published server manifest.
@@ -702,7 +718,9 @@ export async function verifyQualifiedAcpxInstallation(
   const dshAuthority = profile.agent === "dsh" ? (process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_ROOT === undefined
     ? resolveInstalledProviderAuthority(import.meta.url)
     : { root: process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_ROOT, manifest: process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_MANIFEST }) : undefined;
-  const dshResolvePackageJson = profile.agent === "dsh" ? createDshPackageJsonResolver(dshAuthority?.root, dshAuthority?.manifest) : undefined;
+  const dshResolvePackageJson = profile.agent === "dsh"
+    ? resolvePackageJson === defaultPackageJsonResolver ? createDshPackageJsonResolver(dshAuthority?.root, dshAuthority?.manifest) : resolvePackageJson
+    : undefined;
   const builtin = profile.agent === "grok" || profile.agent === "dsh";
   if (profile.agent === "grok" && (profile.agentServerPackage !== "builtin:grok-acp" || profile.agentServerVersion !== "1" || profile.agentRuntimePackage !== "native:grok" || profile.agentRuntimeVersion !== "1.0.13")) {
     throw new Error("Grok builtin profile identity mismatch");
@@ -713,7 +731,7 @@ export async function verifyQualifiedAcpxInstallation(
   let serverPackageJsonPath: string | null = null;
   if (!builtin) {
     try {
-      serverPackageJsonPath = await realpath(resolvePackageJson(profile.agentServerPackage));
+      serverPackageJsonPath = await realpath(await resolvePackageJson(profile.agentServerPackage));
     } catch (error) {
       if ((profile.agent === "claude" || profile.agent === "codex") &&
           error instanceof Error && "code" in error &&
@@ -777,8 +795,8 @@ export async function verifyQualifiedAcpxInstallation(
       throw new Error("Qualified ACPX runtime package omitted its version");
     }
     runtimePackageJsonPath = await realpath(profile.agent === "dsh"
-      ? await dshResolvePackageJson!(profile.agentRuntimePackage, serverPackageJsonPath ?? undefined)
-      : resolvePackageJson(profile.agentRuntimePackage, serverPackageJsonPath!));
+      ? await dshResolvePackageJson!(profile.agentRuntimePackage, serverPackageJsonPath ?? undefined, signal)
+      : await resolvePackageJson(profile.agentRuntimePackage, serverPackageJsonPath!));
     runtimePackage = await readPackageMetadata(
       runtimePackageJsonPath,
       profile.agentRuntimePackage,
@@ -793,7 +811,7 @@ export async function verifyQualifiedAcpxInstallation(
       profile,
       runtimePackage,
       runtimePackageJsonPath,
-      resolvePackageJson,
+      resolvePackageJson: resolvePackageJson as AcpxPackageJsonResolver,
     });
   } else if (profile.agentRuntimeVersion !== null) {
     throw new Error("Qualified ACPX runtime version omitted its package");
@@ -823,7 +841,7 @@ export async function verifyQualifiedAcpxInstallation(
         );
       }
       const dependencyPackageJsonPath = await realpath(
-        resolvePackageJson(expected.packageName, serverPackageJsonPath!),
+        await resolvePackageJson(expected.packageName, serverPackageJsonPath!),
       );
       const dependencyPackage = await readPackageMetadata(
         dependencyPackageJsonPath,
@@ -847,6 +865,7 @@ export async function verifyQualifiedAcpxInstallation(
       profile,
       resolvePackageJson: dshResolvePackageJson!,
       serverPackageJsonPath: (runtimePackageJsonPath ?? serverPackageJsonPath)!,
+      signal,
     });
     supplementalPackages.push(...closure.packages);
     dshPackageLinks = closure.links;
