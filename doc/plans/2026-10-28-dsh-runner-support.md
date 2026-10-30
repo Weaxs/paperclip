@@ -12,7 +12,7 @@ Base: `origin/master` at `40c1ab36cdac70c85dc8fe5e912431834fdb691b`
 | Native Runner route | Reuse the production ACPX sidecar and Rust `acpx_runtime` backend. Launch the pinned `@deepseek-ai/dsh` CLI with the `acp` profile; do not add a legacy `dsh_local` adapter or a second PRP/provider protocol. |
 | Release target | Reviewable implementation on the feature branch. No merge, deployment, migration, or existing-agent conversion is authorized by this task. |
 | First environment | Local macOS arm64. Linux, SSH, and Daytona remain unqualified until separately exercised. |
-| Runtime | `@deepseek-ai/dsh@0.2.0-rc.2`, ACP v1 over stdio JSON-RPC. The installed CLI and shipped package documentation were inspected on 2026-10-28. |
+| Runtime | `@deepseek-ai/dsh@0.2.1-rc.5`, ACP v1 over stdio JSON-RPC. The installed CLI and shipped package documentation were inspected on 2026-10-28. |
 | Authentication | `DEEPSEEK_API_KEY` from the explicit Paperclip task environment. Ambient developer credentials are not a production admission path. |
 | Models | Caller-selected DeepSeek model ID; initial repeatable acceptance model `deepseek-v4-flash`. Translate the Paperclip model ID to DSH's opaque `["deepseek-official","<model>"]` ACP selector and verify the acknowledged selection before prompting. |
 | Instructions | Write the composed bounded Paperclip instructions to the isolated `$DSH_HOME/AGENTS.md`; DSH loads that file as its user-global instruction layer. Preserve project-level instructions separately. |
@@ -27,7 +27,7 @@ Base: `origin/master` at `40c1ab36cdac70c85dc8fe5e912431834fdb691b`
 
 ## Capability inventory
 
-Observed from `@deepseek-ai/dsh-acp@0.2.0-rc.2` documentation and shipped source:
+Observed from `@deepseek-ai/dsh-acp@0.2.1-rc.5` documentation and shipped source:
 
 - Supported: `initialize`, `session/new`, `session/list`, `session/resume`, `session/close`, `session/set_config_option` for model and reasoning effort, `session/prompt`, `session/cancel`, standard assistant/thought/tool/usage updates, and `session/request_permission`.
 - Supported transports: stdio and Streamable HTTP MCP declarations.
@@ -78,10 +78,10 @@ These statements are source/document observations, not live model qualification.
 - Runtime direct dependencies are resolved from the DSH runtime manifest only for targets already admitted by the ACP closure. Their exact peer-context links override shared-entry defaults, with a two-variant fixture verified through actual snapshot links.
 - DSH command admission now has a 60-second deadline, external abort propagation, per-file snapshot cancellation, and late-lease cleanup. Controlled tests prove timeout, late close, and partial-snapshot cleanup. Candidate-agent checks are shared across Runner, live usage, and the server shim.
 - Streaming snapshot reads now stop on abort, enforce expectedBytes before every chunk write, preserve source-FD identity checks, and have explicit mid-stream abort and file-growth regressions.
-- Synchronized `origin/master` through `2badf8a4a`, preserving the upstream Antigravity candidate flow alongside DSH. Shared admission gates now exempt only DSH's existing host-authorized candidate path; Antigravity retains the upstream release gate. Grok's bound profile advanced to v16 with regenerated identity evidence.
+- Synchronized `origin/master` through `2badf8a4a`, preserving the upstream Antigravity candidate flow alongside DSH. Shared admission gates now exempt only DSH's existing host-authorized candidate path; Antigravity retains the upstream release gate. Grok's bound profile advanced to v21 with regenerated identity evidence.
 - Clean-install review exposed undeclared DSH peer dependencies. Runner now declares the ACP-required Cordis/DSH peers, and server declares its direct DSH peers explicitly; local lockfile changes from installation were reverted as required by repository policy.
-- Full DSH installation verification, including dependency discovery and asynchronous resolver traversal, now shares the 60-second admission deadline. Caller cancellation is propagated into dependency resolution, with stalled-resolution timeout and abort regressions. Grok's bound profile advanced to v17 after the runtime-host admission change.
+- Full DSH installation verification, including dependency discovery and asynchronous resolver traversal, now shares the 60-second admission deadline. Caller cancellation is propagated into dependency resolution, with stalled-resolution timeout and abort regressions. Grok's bound profile advanced to v21 after the runtime-host admission change.
 - Review follow-up fixed snapshot filtering to use package-relative paths and allowed the DSH setup-only model catalog through the real route. DSH descriptor assertions now match pending behavior, historical Grok/Pi compatibility includes retained versions, Grok advanced to v18, and Pi advanced to v36 with refreshed source identities.
-- CI follow-up also scoped temporary-directory cleanup to the unique mkdtemp result, added the DSH readiness mock export, refreshed the Pi public-install probe to v36, advanced Grok to v20 and Copilot to v95, retained historical Grok/Pi/Copilot version decoding, and made DSH root canonicalization lazy and asynchronous.
-- The final affected regression set passed 344 Runner tests, 406 server/UI tests, 77 Rust ACPX tests, and 9 ambient-environment checks. Production ACPX admission passed again on Node 24 with current-source snapshots and complete cleanup.
+- CI follow-up also scoped temporary-directory cleanup to the unique mkdtemp result, added the DSH readiness mock export, refreshed the Pi public-install probe to v36, advanced Grok to v21 and Copilot to v96, retained historical Grok/Pi/Copilot version decoding, and made DSH root canonicalization lazy and asynchronous.
+- The final affected regression set passed 351 Runner tests, 406 server/UI tests, 77 Rust ACPX tests, and 9 ambient-environment checks. Production ACPX admission passed again on Node 24 with current-source snapshots and complete cleanup.
 - `pnpm-lock.yaml` remains intentionally unchanged because this repository assigns lockfile updates to CI. A coordinated lock refresh is still required before frozen/clean-install qualification; this is a delivery gate, not a claim that the current lock already contains DSH.

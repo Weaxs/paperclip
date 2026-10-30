@@ -709,14 +709,14 @@ async function verifyQualifiedAcpxInstallationWithSignal(
   // wrapper delegates platform installation to the published server manifest.
   if ((profile.agent === "codex" || profile.agent === "claude") && resolvePackageJson === defaultPackageJsonResolver) {
     const boundRoot = process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_ROOT;
-    const authority = boundRoot === undefined ? resolveInstalledProviderAuthority(import.meta.url) : {
+    const authority = boundRoot === undefined ? await resolveInstalledProviderAuthority(import.meta.url, signal) : {
       root: boundRoot,
       manifest: process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_MANIFEST,
     };
     if (authority) resolvePackageJson = createAcpxPackageJsonResolver(authority.root, authority.manifest);
   }
   const dshAuthority = profile.agent === "dsh" ? (process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_ROOT === undefined
-    ? resolveInstalledProviderAuthority(import.meta.url)
+    ? await resolveInstalledProviderAuthority(import.meta.url, signal)
     : { root: process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_ROOT, manifest: process.env.PAPERCLIP_ACPX_PROVIDER_PACKAGE_MANIFEST }) : undefined;
   const dshResolvePackageJson = profile.agent === "dsh"
     ? resolvePackageJson === defaultPackageJsonResolver ? createDshPackageJsonResolver(dshAuthority?.root, dshAuthority?.manifest) : resolvePackageJson
@@ -725,7 +725,7 @@ async function verifyQualifiedAcpxInstallationWithSignal(
   if (profile.agent === "grok" && (profile.agentServerPackage !== "builtin:grok-acp" || profile.agentServerVersion !== "1" || profile.agentRuntimePackage !== "native:grok" || profile.agentRuntimeVersion !== "1.0.13")) {
     throw new Error("Grok builtin profile identity mismatch");
   }
-  if (profile.agent === "dsh" && (profile.agentServerPackage !== "builtin:dsh-acp" || profile.agentServerVersion !== "1" || profile.agentRuntimePackage !== "@deepseek-ai/dsh" || profile.agentRuntimeVersion !== "0.2.0-rc.2")) {
+  if (profile.agent === "dsh" && (profile.agentServerPackage !== "builtin:dsh-acp" || profile.agentServerVersion !== "1" || profile.agentRuntimePackage !== "@deepseek-ai/dsh" || profile.agentRuntimeVersion !== "0.2.1-rc.5")) {
     throw new Error("DSH builtin profile identity mismatch");
   }
   let serverPackageJsonPath: string | null = null;

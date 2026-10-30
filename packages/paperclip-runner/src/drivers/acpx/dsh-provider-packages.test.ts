@@ -18,10 +18,10 @@ describe("DSH provider package closure", () => {
       manifests.set(name, path);
     };
     try {
-      await add("@deepseek-ai/dsh", { version: "0.2.0-rc.2" });
-      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.0-rc.2", dependencies: { "required-peer": "1" }, optionalDependencies: { "optional-b": "1" }, peerDependencies: { "required-peer": "1" }, peerDependenciesMeta: { "required-peer": { optional: true } } });
-      await add("@deepseek-ai/dsh-acp-app", { version: "0.2.0-rc.2" });
-      await add("@deepseek-ai/dsh-base", { version: "0.2.0-rc.2" });
+      await add("@deepseek-ai/dsh", { version: "0.2.1-rc.5" });
+      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.1-rc.5", dependencies: { "required-peer": "1" }, optionalDependencies: { "optional-b": "1" }, peerDependencies: { "required-peer": "1" }, peerDependenciesMeta: { "required-peer": { optional: true } } });
+      await add("@deepseek-ai/dsh-acp-app", { version: "0.2.1-rc.5" });
+      await add("@deepseek-ai/dsh-base", { version: "0.2.1-rc.5" });
       await add("optional-b", { version: "1", dependencies: { "required-c": "1" } });
       const profile = resolveQualifiedAcpxProfile("dsh", "deepseek-v4-flash");
       const resolve = (name: string): string => {
@@ -50,10 +50,10 @@ describe("DSH provider package closure", () => {
       await mkdir(join(root, "node_modules", "@deepseek-ai/dsh-base"), { recursive: true });
       await mkdir(join(root, "node_modules", "pkg-a"), { recursive: true });
       await writeFile(join(root, "package.json"), JSON.stringify({ private: true }));
-      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh", version: "0.2.0-rc.2" }));
-      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-app-boot/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-app-boot", version: "0.2.0-rc.2", dependencies: { "pkg-a": "1" } }));
-      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-acp-app/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-acp-app", version: "0.2.0-rc.2" }));
-      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-base/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-base", version: "0.2.0-rc.2" }));
+      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh", version: "0.2.1-rc.5" }));
+      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-app-boot/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-app-boot", version: "0.2.1-rc.5", dependencies: { "pkg-a": "1" } }));
+      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-acp-app/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-acp-app", version: "0.2.1-rc.5" }));
+      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-base/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-base", version: "0.2.1-rc.5" }));
       await writeFile(join(root, "node_modules", "pkg-a/package.json"), JSON.stringify({ name: "pkg-a", version: "1" }));
       const profile = resolveQualifiedAcpxProfile("dsh", "deepseek-v4-flash");
       const closure = await collectDshProviderPackages({
@@ -65,7 +65,7 @@ describe("DSH provider package closure", () => {
       const app = closure.packages.find(entry => entry.directory.endsWith("dsh-app-boot"))!.directory;
       const dependency = closure.packages.find(entry => entry.directory.endsWith("pkg-a"))!.directory;
       expect(closure.links.get(app)?.get("pkg-a")).toBe(dependency);
-      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-app-boot/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-app-boot", version: "0.2.0-rc.2", dependencies: { "../outside": "1" } }));
+      await writeFile(join(root, "node_modules", "@deepseek-ai/dsh-app-boot/package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-app-boot", version: "0.2.1-rc.5", dependencies: { "../outside": "1" } }));
       await expect(collectDshProviderPackages({ profile, resolvePackageJson: createDshPackageJsonResolver(root), serverPackageJsonPath: join(root, "package.json") })).rejects.toThrow("Invalid DSH package name");
     } finally { await rm(root, { recursive: true, force: true }); }
   });
@@ -81,10 +81,10 @@ describe("DSH provider package closure", () => {
       };
       const runtimeDir = join(root, "runtime"), appDir = join(root, "app"), acpDir = join(root, "acp"), baseDir = join(root, "base");
       const toolA = join(root, "tool-a"), toolB = join(root, "tool-b");
-      const runtime = await add(runtimeDir, "@deepseek-ai/dsh", { version: "0.2.0-rc.2", dependencies: { tool: "1" } });
-      const app = await add(appDir, "@deepseek-ai/dsh-app-boot", { version: "0.2.0-rc.2", dependencies: { tool: "1" } });
-      await add(acpDir, "@deepseek-ai/dsh-acp-app", { version: "0.2.0-rc.2", dependencies: { tool: "1" } });
-      await add(baseDir, "@deepseek-ai/dsh-base", { version: "0.2.0-rc.2" });
+      const runtime = await add(runtimeDir, "@deepseek-ai/dsh", { version: "0.2.1-rc.5", dependencies: { tool: "1" } });
+      const app = await add(appDir, "@deepseek-ai/dsh-app-boot", { version: "0.2.1-rc.5", dependencies: { tool: "1" } });
+      await add(acpDir, "@deepseek-ai/dsh-acp-app", { version: "0.2.1-rc.5", dependencies: { tool: "1" } });
+      await add(baseDir, "@deepseek-ai/dsh-base", { version: "0.2.1-rc.5" });
       const toolAPath = await add(toolA, "tool", { version: "1", variant: "app" });
       const toolBPath = await add(toolB, "tool", { version: "1", variant: "runtime" });
       const manifests = new Map([["@deepseek-ai/dsh", runtime], ["@deepseek-ai/dsh-app-boot", app], ["@deepseek-ai/dsh-acp-app", join(acpDir, "package.json")], ["@deepseek-ai/dsh-base", join(baseDir, "package.json")]]);
@@ -141,10 +141,10 @@ describe("DSH provider package closure", () => {
         dependencies[name] = "1";
         await add(name, { version: "1" });
       }
-      await add("@deepseek-ai/dsh", { version: "0.2.0-rc.2" });
-      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.0-rc.2", dependencies: { ...dependencies, "pkg-0": "1" } });
-      await add("@deepseek-ai/dsh-acp-app", { version: "0.2.0-rc.2" });
-      await add("@deepseek-ai/dsh-base", { version: "0.2.0-rc.2" });
+      await add("@deepseek-ai/dsh", { version: "0.2.1-rc.5" });
+      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.1-rc.5", dependencies: { ...dependencies, "pkg-0": "1" } });
+      await add("@deepseek-ai/dsh-acp-app", { version: "0.2.1-rc.5" });
+      await add("@deepseek-ai/dsh-base", { version: "0.2.1-rc.5" });
       const profile = resolveQualifiedAcpxProfile("dsh", "deepseek-v4-flash");
       const resolve = (name: string): string => {
         const path = manifests.get(name);
@@ -156,8 +156,8 @@ describe("DSH provider package closure", () => {
       expect(closure.packages).toHaveLength(2048);
       await add("pkg-overflow", { version: "1" });
       dependencies["pkg-overflow"] = "1";
-      await add("@deepseek-ai/dsh", { version: "0.2.0-rc.2" });
-      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.0-rc.2", dependencies: { ...dependencies, "pkg-0": "1" } });
+      await add("@deepseek-ai/dsh", { version: "0.2.1-rc.5" });
+      await add("@deepseek-ai/dsh-app-boot", { version: "0.2.1-rc.5", dependencies: { ...dependencies, "pkg-0": "1" } });
       await expect(collectDshProviderPackages(input)).rejects.toThrow("exceeds its bound");
     } finally { await rm(root, { recursive: true, force: true }); }
   });
