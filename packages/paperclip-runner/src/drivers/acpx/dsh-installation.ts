@@ -1,5 +1,4 @@
 import { realpath } from "node:fs/promises";
-import { realpathSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -66,12 +65,22 @@ async function resolveDshPackageJsonFromIssuer(packageName: string, issuerPackag
 
 export function createDshPackageJsonResolver(root?: string, manifest?: string): DshPackageJsonResolver {
   if (!root) return resolveDshPackageJsonFromIssuer;
-  const canonicalRoot = realpathSync(root);
-  const canonicalManifest = realpathSync(manifest ?? resolve(canonicalRoot, "package.json"));
-  if (!inside(canonicalRoot, canonicalManifest)) throw new Error("DSH provider package manifest resolves outside the selected provider root");
-  const canonicalNodeModules = realpathSync(resolve(canonicalRoot, "node_modules"));
-  if (!inside(canonicalRoot, canonicalNodeModules)) throw new Error("DSH provider node_modules resolves outside the selected provider root");
+  let authority: Promise<{ canonicalRoot: string; canonicalManifest: string; canonicalNodeModules: string }> | undefined;
+  const loadAuthority = (signal?: AbortSignal) => {
+    signal?.throwIfAborted();
+    authority ??= (async () => {
+      const canonicalRoot = await realpath(root);
+      const canonicalManifest = await realpath(manifest ?? resolve(canonicalRoot, "package.json"));
+      if (!inside(canonicalRoot, canonicalManifest)) throw new Error("DSH provider package manifest resolves outside the selected provider root");
+      const canonicalNodeModules = await realpath(resolve(canonicalRoot, "node_modules"));
+      if (!inside(canonicalRoot, canonicalNodeModules)) throw new Error("DSH provider node_modules resolves outside the selected provider root");
+      return { canonicalRoot, canonicalManifest, canonicalNodeModules };
+    })();
+    return authority;
+  };
   return async (packageName, issuerPackageJsonPath, signal) => {
+    const { canonicalRoot, canonicalManifest, canonicalNodeModules } = await loadAuthority(signal);
+    signal?.throwIfAborted();
     const canonicalIssuer = issuerPackageJsonPath === undefined ? canonicalManifest : await realpath(issuerPackageJsonPath);
     if (!inside(canonicalRoot, canonicalIssuer)) throw new Error(`DSH provider package issuer for ${packageName} resolves outside the selected provider root`);
     const packageJsonPath = await resolveDshPackageJsonFromIssuer(packageName, canonicalIssuer, signal);

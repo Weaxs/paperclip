@@ -90,7 +90,7 @@ pub struct AcpxSidecarTransport {
 // A fresh Pi process verifies and copies its native closure before ACP admission.
 // Reopen/recovery uses the same path. Ordinary sidecar requests retain their bound.
 fn session_open_timeout(agent: &str, ordinary: Duration) -> Duration {
-    if agent == "pi" {
+    if matches!(agent, "pi" | "dsh") {
         Duration::from_secs(60)
     } else {
         ordinary
@@ -1066,13 +1066,12 @@ mod tests {
     }
 
     #[test]
-    fn only_pi_cold_open_gets_the_longer_admission_budget() {
+    fn pi_and_dsh_cold_open_get_the_longer_admission_budget() {
         let ordinary = Duration::from_secs(30);
-        assert_eq!(
-            session_open_timeout("pi", ordinary),
-            Duration::from_secs(60)
-        );
-        for agent in ["claude", "codex", "grok", "cursor", "copilot", "dsh"] {
+        for agent in ["pi", "dsh"] {
+            assert_eq!(session_open_timeout(agent, ordinary), Duration::from_secs(60));
+        }
+        for agent in ["claude", "codex", "grok", "cursor", "copilot"] {
             assert_eq!(session_open_timeout(agent, ordinary), ordinary);
         }
     }
