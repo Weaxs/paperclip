@@ -25,12 +25,12 @@
       "qualificationStatus": "pending"
     },
     "grok": {
-      "agentProfileVersion": 21,
+      "agentProfileVersion": 22,
       "agentServerPackage": "builtin:grok-acp",
       "agentServerVersion": "1",
       "agentRuntimePackage": "native:grok",
       "agentRuntimeVersion": "1.0.13",
-      "commandDigest": "sha256:78a313d69e8c0cd6a041b8fe902acf4de627b1769760aa0234f9d86499019f9e",
+      "commandDigest": "sha256:00eb72922d92caa6a7e1e6efee0041e0aa06fe8e41d4636d965df0bd4a9464b8",
       "requiresProviderPolicy": false
     },
     "pi": {

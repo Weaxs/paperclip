@@ -1069,7 +1069,10 @@ mod tests {
     fn pi_and_dsh_cold_open_get_the_longer_admission_budget() {
         let ordinary = Duration::from_secs(30);
         for agent in ["pi", "dsh"] {
-            assert_eq!(session_open_timeout(agent, ordinary), Duration::from_secs(60));
+            assert_eq!(
+                session_open_timeout(agent, ordinary),
+                Duration::from_secs(60)
+            );
         }
         for agent in ["claude", "codex", "grok", "cursor", "copilot"] {
             assert_eq!(session_open_timeout(agent, ordinary), ordinary);

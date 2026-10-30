@@ -201,11 +201,9 @@ describe("private ACPX package snapshots", () => {
     snapshots.push(snapshot);
     expect(await readFile(join(snapshot.roots[0]!, "main.js"), "utf8")).toBe("export const value = 1;");
     await expect(access(join(snapshot.roots[0]!, "__tests__", "fixture.js"))).rejects.toThrow();
-    await writeFile(join(testParent, "unrelated.txt"), "keep");
-  });
-
-  it("keeps unrelated files in the shared parent directory", async () => {
-    expect(await readFile(join(tmpdir(), "tests", "unrelated.txt"), "utf8")).toBe("keep");
+    await writeFile(join(parent, "unrelated.txt"), "keep");
+    await snapshot.close();
+    expect(await readFile(join(parent, "unrelated.txt"), "utf8")).toBe("keep");
   });
 
   it("rejects an oversized module and cleans the partial snapshot", async () => {
