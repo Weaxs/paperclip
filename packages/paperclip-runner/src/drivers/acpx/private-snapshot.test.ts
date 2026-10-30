@@ -19,6 +19,7 @@ import {
   MAX_ACPX_RUNTIME_EXECUTABLE_BYTES,
   type AcpxPrivateSnapshot,
 } from "./private-snapshot.js";
+import { dshSnapshotPathSkipped } from "./dsh-installation.js";
 const roots: string[] = [];
 const snapshots: AcpxPrivateSnapshot[] = [];
 afterEach(async () => {
@@ -184,6 +185,22 @@ describe("private ACPX package snapshots", () => {
     } finally { createReadStream.mockRestore(); }
     const after = (await readdir(tmpdir())).filter(name => name.startsWith("paperclip-acpx-")).sort();
     expect(after).toEqual(before);
+  });
+
+  it("applies DSH exclusions only within each package", async () => {
+    const testParent = join(tmpdir(), "tests");
+    await mkdir(testParent, { recursive: true });
+    roots.push(testParent);
+    const parent = await mkdtemp(join(testParent, "dsh-provider-"));
+    const source = join(parent, "provider");
+    await mkdir(source);
+    await mkdir(join(source, "__tests__"));
+    await writeFile(join(source, "main.js"), "export const value = 1;");
+    await writeFile(join(source, "__tests__", "fixture.js"), "export const fixture = true;");
+    const snapshot = await createAcpxPrivateSnapshot([source], null, { skipPath: dshSnapshotPathSkipped });
+    snapshots.push(snapshot);
+    expect(await readFile(join(snapshot.roots[0]!, "main.js"), "utf8")).toBe("export const value = 1;");
+    await expect(access(join(snapshot.roots[0]!, "__tests__", "fixture.js"))).rejects.toThrow();
   });
 
   it("rejects an oversized module and cleans the partial snapshot", async () => {

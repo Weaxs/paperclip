@@ -33,11 +33,11 @@ describe("ACPX driver profile", () => {
     },
   );
 
-  it("declares DSH standard resume without inventing skills or native controls", () => {
+  it("keeps DSH pending without resume, skills, or native context", () => {
     expect(acpxDriverDescriptor("dsh")).toMatchObject({
       displayName: "DeepSeek Harness via ACPX",
-      runtimeContextCapabilities: { instructions: "native", skills: "unsupported", mcp: "native" },
-      capabilities: { resume: true, toolRefreshOnResume: true, usage: false, steering: false, queuedFollowUp: false },
+      runtimeContextCapabilities: { instructions: "unsupported", skills: "unsupported", mcp: "unsupported" },
+      capabilities: { resume: false, toolRefreshOnResume: false, usage: false, steering: false, queuedFollowUp: false },
     });
   });
 

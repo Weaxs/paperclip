@@ -3057,9 +3057,9 @@ export function agentRoutes(
     const pendingAcpxProfile = type === "paperclip_runner" && req.query.provider === "acpx"
       ? PAPERCLIP_RUNNER_ACPX_PROFILES.find(profile => profile.value === req.query.acpxAgent && !profile.qualified)
       : undefined;
-    // Antigravity's setup-only catalog cannot open a session or send a prompt.
-    // Its execution/save/Test gates continue to require a qualified profile.
-    if (pendingAcpxProfile && req.query.acpxAgent !== "antigravity") throw unprocessable(`${pendingAcpxProfile.label} is awaiting native Runner acceptance. Its profile is not enabled for production runs.`,
+    // Setup-only catalogs cannot open a session or send a prompt.
+    // Their execution/save/Test gates continue to require a qualified profile.
+    if (pendingAcpxProfile && req.query.acpxAgent !== "antigravity" && req.query.acpxAgent !== "dsh") throw unprocessable(`${pendingAcpxProfile.label} is awaiting native Runner acceptance. Its profile is not enabled for production runs.`,
       { code: "paperclip_runner_acpx_agent_unavailable" });
     const poolId = asNonEmptyString(req.query.poolId);
     if (poolId) {

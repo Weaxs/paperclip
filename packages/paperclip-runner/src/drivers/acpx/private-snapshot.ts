@@ -54,7 +54,7 @@ export interface AcpxPrivateSnapshotOptions {
   maxModuleBytes?: number;
   maxPackageBytes?: number;
   streamingCopy?: boolean;
-  skipPath?: (source: string) => boolean;
+  skipPath?: (source: string, packageRoot: string) => boolean;
   packageLinks?: ReadonlyMap<string, ReadonlyMap<string, string>>;
   signal?: AbortSignal;
 }
@@ -139,7 +139,7 @@ export async function createAcpxPrivateSnapshot(
     root: string,
   ): Promise<void> => {
     options.signal?.throwIfAborted();
-    if (options.skipPath?.(source)) return;
+    if (options.skipPath?.(source, root)) return;
     options.signal?.throwIfAborted();
     if (++filesCopied > (options.maxFiles ?? 30_000))
       throw new Error("ACPX package snapshot exceeds its file bound");

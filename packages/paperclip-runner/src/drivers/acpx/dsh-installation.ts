@@ -8,9 +8,11 @@ import type { QualifiedAcpxProfile } from "./qualified-profiles.js";
 
 export const DSH_MAX_DEPENDENCY_ANCESTORS = 2_048;
 
-export function dshSnapshotPathSkipped(source: string): boolean {
-  if (/\.(?:map|tsx?|mts|cts|png|jpe?g|gif|webp|svg|pdf|mp4|webm|woff2?|ttf|otf|eot|zip|tar|gz)$/i.test(source)) return true;
-  return source.split(sep).some(segment => ["__tests__", "test", "tests", "storybook"].includes(segment));
+export function dshSnapshotPathSkipped(source: string, packageRoot: string): boolean {
+  const local = relative(packageRoot, source);
+  if (local.startsWith("..") || isAbsolute(local)) return true;
+  if (/\.(?:map|tsx?|mts|cts|png|jpe?g|gif|webp|svg|pdf|mp4|webm|woff2?|ttf|otf|eot|zip|tar|gz)$/i.test(local)) return true;
+  return local.split(sep).some(segment => ["__tests__", "test", "tests", "storybook"].includes(segment));
 }
 
 export type DshPackageJsonResolver = (
