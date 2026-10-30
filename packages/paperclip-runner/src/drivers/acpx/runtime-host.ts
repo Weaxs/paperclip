@@ -54,6 +54,7 @@ import {
 import { acpxRuntimePermissionPolicy } from "./permission-policy.js";
 import {
   resolveQualifiedAcpxProfile,
+  isAcpxProviderPolicyAgent,
   type QualifiedAcpxAgent,
   type QualifiedAcpxProfile,
 } from "./qualified-profiles.js";
@@ -394,7 +395,7 @@ export class AcpxRuntimeHost {
           grokEffort: resolveGrokEffort(options.agent, options.grokEffort),
           grokDisableWebSearch: resolveGrokDisableWebSearch(options.agent, options.grokDisableWebSearch),
           ...(preconfigured || preparedHome ? { homeBinding: preconfiguredHomeEnvironment(options.environment) } : {}),
-          ...(["cursor", "copilot", "pi"].includes(options.agent) && options.providerPolicy !== undefined
+          ...(isAcpxProviderPolicyAgent(options.agent) && options.providerPolicy !== undefined
             ? { providerPolicy: options.providerPolicy } : {}),
         }),
       dependencies.retainAdmissionCleanup,

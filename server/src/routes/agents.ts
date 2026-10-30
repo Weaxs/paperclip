@@ -300,6 +300,7 @@ import {
   redactHeartbeatRunListRow,
 } from "../services/heartbeat-run-privacy.js";
 import {
+  DEFAULT_ACPX_RUNNER_MODELS,
   PaperclipRunnerProviderProfileError,
   resolvePaperclipRunnerProviderProfile,
   validatePaperclipRunnerDotConfig,
@@ -3142,6 +3143,10 @@ export function agentRoutes(
     }
     if (type === "paperclip_runner" && provider && !isPaperclipRunnerProvider(provider)) {
       throw unprocessable("Unknown Paperclip Runner provider");
+    }
+    if (type === "paperclip_runner" && provider === "acpx" && req.query.acpxAgent === "dsh") {
+      res.json([{ id: DEFAULT_ACPX_RUNNER_MODELS.dsh, label: "DeepSeek V4 Flash" }]);
+      return;
     }
     const modelAdapterType = type === "paperclip_runner"
       ? provider === "acpx" && req.query.acpxAgent === "grok" ? "grok_local"
